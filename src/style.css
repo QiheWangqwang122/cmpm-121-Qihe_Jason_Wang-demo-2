@@ -103,3 +103,10 @@ canvas {
   
 }
 
+.selectedTool {
+  border-color: #646cff; /* Highlight the selected tool with a blue border */
+  background-color: #535bf2; /* Change background color for the selected tool */
+  color: #ffffff; /* Change text color */
+}
+
+
