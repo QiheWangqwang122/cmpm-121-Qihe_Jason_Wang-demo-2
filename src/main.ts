@@ -1,5 +1,30 @@
 import "./style.css";
 
+class MarkerLine {
+    private points: Array<{ x: number, y: number }> = [];  // To store the line's points
+
+    constructor(initialX: number, initialY: number) {
+        this.points.push({ x: initialX, y: initialY });
+    }
+
+    // Method to add new points as the user drags
+    drag(x: number, y: number) {
+        this.points.push({ x, y });
+    }
+
+    // Method to draw the line on the canvas
+    display(ctx: CanvasRenderingContext2D) {
+        if (this.points.length < 2) return;  // Not enough points to draw
+
+        ctx.beginPath();
+        for (let i = 0; i < this.points.length - 1; i++) {
+            ctx.moveTo(this.points[i].x, this.points[i].y);
+            ctx.lineTo(this.points[i + 1].x, this.points[i + 1].y);
+        }
+        ctx.stroke();
+    }
+}
+
 // Set up the app and canvas
 const APP_NAME = "Jason's App";
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -13,12 +38,14 @@ app.appendChild(header);
 const canvas = document.getElementById('JasonsCanvas') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d');
 
-// Array to hold all drawing paths (each path is an array of points)
-let paths: Array<Array<{ x: number, y: number }>> = [];
-let currentPath: Array<{ x: number, y: number }> = [];
+// Array to hold all drawing paths (each path is a MarkerLine object)
+let paths: MarkerLine[] = [];
+let currentLine: MarkerLine | null = null;
 
-let redoStack: Array<Array<{ x: number, y: number }>> = [];
+// Stack for redo functionality
+let redoStack: MarkerLine[] = [];
 
+// Ensure the canvas exists and the context is valid
 if (!canvas || !ctx) {
     console.error("Failed to get canvas or context.");
 } else {
@@ -30,63 +57,52 @@ if (!canvas || !ctx) {
         canvas.dispatchEvent(event);
     }
 
-    // Redraw all paths stored in the paths array and current path
+    // Redraw all paths stored in the paths array and the current line
     function redraw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);  // Clear the entire canvas
 
-        // Redraw all paths stored in the paths array
+        // Redraw all MarkerLine objects
         for (const path of paths) {
-            ctx.beginPath();
-            for (let i = 0; i < path.length - 1; i++) {
-                ctx.moveTo(path[i].x, path[i].y);
-                ctx.lineTo(path[i + 1].x, path[i + 1].y);
-            }
-            ctx.stroke();
+            path.display(ctx);  // Each MarkerLine object knows how to draw itself
         }
 
-        // Draw the current path being drawn
-        if (currentPath.length > 0) {
-            ctx.beginPath();
-            for (let i = 0; i < currentPath.length - 1; i++) {
-                ctx.moveTo(currentPath[i].x, currentPath[i].y);
-                ctx.lineTo(currentPath[i + 1].x, currentPath[i + 1].y);
-            }
-            ctx.stroke();
+        // Draw the current line being drawn (if any)
+        if (currentLine) {
+            currentLine.display(ctx);
         }
     }
 
     // Event listener for mouse down to start drawing
     canvas.addEventListener("mousedown", (e: MouseEvent) => {
         isDrawing = true;
-        currentPath = [];  // Start a new path
-        currentPath.push({ x: e.offsetX, y: e.offsetY });  // Save the starting point
+        currentLine = new MarkerLine(e.offsetX, e.offsetY);  // Create a new MarkerLine
         redoStack = [];  // Clear the redo stack when starting a new drawing
     });
 
     // Event listener for mouse move to track mouse positions
     canvas.addEventListener("mousemove", (e: MouseEvent) => {
-        if (isDrawing) {
-            currentPath.push({ x: e.offsetX, y: e.offsetY });  // Save each point
-            redraw();  // Redraw as the user draws
+        if (isDrawing && currentLine) {
+            currentLine.drag(e.offsetX, e.offsetY);  // Extend the current MarkerLine
+            redraw();  // Redraw the canvas
         }
     });
 
-    // Event listener for mouse up to finish the current path
+    // Event listener for mouse up to finish the current line
     canvas.addEventListener("mouseup", () => {
-        if (isDrawing) {
+        if (isDrawing && currentLine) {
             isDrawing = false;
-            paths.push([...currentPath]);  // Save the current path into paths array
-            currentPath = [];  // Clear the current path to avoid redrawing it
+            paths.push(currentLine);  // Save the current MarkerLine into paths array
+            currentLine = null;  // Reset currentLine
             dispatchDrawingChanged();  // Dispatch the event once the path is completed
         }
     });
 
     // Event listener for mouse leave to stop drawing when the cursor leaves the canvas
     canvas.addEventListener("mouseleave", () => {
-        if (isDrawing) {
+        if (isDrawing && currentLine) {
             isDrawing = false;
-            paths.push([...currentPath]);  // Save the current path
-            currentPath = [];  // Clear the current path
+            paths.push(currentLine);  // Save the current path
+            currentLine = null;
             dispatchDrawingChanged();  // Dispatch the event
         }
     });
@@ -105,7 +121,7 @@ if (!canvas || !ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);  // Clears the entire canvas
         paths = [];  // Clears the saved paths
         redoStack = [];  // Clears the redo stack
-        currentPath = [];  // Also clear the current path
+        currentLine = null;  // Also clear the current line
         dispatchDrawingChanged();  // Dispatch the event after clearing the canvas
     });
 
