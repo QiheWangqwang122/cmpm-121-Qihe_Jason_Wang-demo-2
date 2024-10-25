@@ -29,33 +29,49 @@ class MarkerLine {
     }
 }
 
-// New ToolPreview class to handle the tool preview rendering
-class ToolPreview {
+// New StickerPreview class for previewing sticker placement
+class StickerPreview {
     private x: number;
     private y: number;
-    private radius: number;
-    private color: string;
+    private sticker: string;
 
-    constructor(x: number, y: number, radius: number, color: string) {
+    constructor(x: number, y: number, sticker: string) {
         this.x = x;
         this.y = y;
-        this.radius = radius;
-        this.color = color;
+        this.sticker = sticker;
     }
 
-    // Update position
     update(x: number, y: number) {
         this.x = x;
         this.y = y;
     }
 
-    // Draw the preview (circle) at the current mouse position
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.strokeStyle = this.color;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        ctx.font = "40px Arial";
+        ctx.fillText(this.sticker, this.x, this.y);
+    }
+}
+
+// StickerCommand class for placing and dragging stickers
+class StickerCommand {
+    private x: number;
+    private y: number;
+    private sticker: string;
+
+    constructor(x: number, y: number, sticker: string) {
+        this.x = x;
+        this.y = y;
+        this.sticker = sticker;
+    }
+
+    drag(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    display(ctx: CanvasRenderingContext2D) {
+        ctx.font = "40px Arial";
+        ctx.fillText(this.sticker, this.x, this.y);
     }
 }
 
@@ -65,7 +81,9 @@ let currentLineStyle = {
     color: "#000000"
 };
 
-let toolPreview: ToolPreview | null = null; // To hold the preview tool object
+let currentSticker: string | null = null;
+let stickerPreview: StickerPreview | null = null;
+let stickerCommand: StickerCommand | null = null;
 let isDrawing = false;
 
 // Set up the app and canvas
@@ -98,6 +116,19 @@ const blueButton = document.createElement("button");
 blueButton.textContent = "Blue Marker";
 app.appendChild(blueButton);
 
+// Create buttons for stickers (emoji strings)
+const heartButton = document.createElement("button");
+heartButton.textContent = "❤️";
+app.appendChild(heartButton);
+
+const starButton = document.createElement("button");
+starButton.textContent = "⭐";
+app.appendChild(starButton);
+
+const smileyButton = document.createElement("button");
+smileyButton.textContent = "😊";
+app.appendChild(smileyButton);
+
 // Event listeners for changing the line style
 thinButton.addEventListener("click", () => {
     currentLineStyle.width = 2;
@@ -123,105 +154,105 @@ blueButton.addEventListener("click", () => {
     blueButton.classList.add("selectedTool");
 });
 
+// Event listeners for selecting stickers
+heartButton.addEventListener("click", () => {
+    currentSticker = "❤️";
+    dispatchToolMoved();
+});
+
+starButton.addEventListener("click", () => {
+    currentSticker = "⭐";
+    dispatchToolMoved();
+});
+
+smileyButton.addEventListener("click", () => {
+    currentSticker = "😊";
+    dispatchToolMoved();
+});
+
 // Function to clear the selected tool class from all buttons
 function clearSelectedTool() {
     const toolButtons = document.querySelectorAll("button");
     toolButtons.forEach((button) => button.classList.remove("selectedTool"));
 }
 
-// Array to hold all drawing paths
-let paths: MarkerLine[] = [];
-let currentLine: MarkerLine | null = null;
-let redoStack: MarkerLine[] = [];
-
-// Function to dispatch a custom "drawing-changed" event
-function dispatchDrawingChanged() {
-    const event = new CustomEvent("drawing-changed");
+// Dispatch a custom "tool-moved" event
+function dispatchToolMoved() {
+    const event = new CustomEvent("tool-moved");
     canvas.dispatchEvent(event);
 }
 
-// Redraw all lines and the tool preview
+// Array to hold all drawing paths and stickers
+let paths: (MarkerLine | StickerCommand)[] = [];
+let currentLine: MarkerLine | null = null;
+let redoStack: (MarkerLine | StickerCommand)[] = [];
+
+// Redraw all lines, stickers, and the tool preview
 function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Redraw all saved lines
     for (const path of paths) {
         path.display(ctx);
     }
 
-    // If the tool preview exists and the user isn't drawing, display it
-    if (toolPreview && !isDrawing) {
-        toolPreview.draw(ctx);
+    if (stickerPreview && !isDrawing) {
+        stickerPreview.draw(ctx);
     }
 
-    // Draw the current line being drawn
     if (currentLine) {
         currentLine.display(ctx);
     }
+
+    if (stickerCommand) {
+        stickerCommand.display(ctx);
+    }
 }
 
-// Event listener for mouse movement to update the tool preview
+// Event listener for mouse movement to update the sticker preview
 canvas.addEventListener("mousemove", (e: MouseEvent) => {
-    if (!isDrawing) {
-        // If toolPreview is null, create a new instance
-        if (!toolPreview) {
-            toolPreview = new ToolPreview(e.offsetX, e.offsetY, currentLineStyle.width / 2, currentLineStyle.color);
+    if (!isDrawing && currentSticker) {
+        if (!stickerPreview) {
+            stickerPreview = new StickerPreview(e.offsetX, e.offsetY, currentSticker);
         }
-
-        // Update the tool preview's position and size
-        toolPreview.update(e.offsetX, e.offsetY);
-        dispatchDrawingChanged();
-    }
-
-    // Custom event for "tool-moved"
-    const toolMovedEvent = new CustomEvent("tool-moved", {
-        detail: { x: e.offsetX, y: e.offsetY }
-    });
-    canvas.dispatchEvent(toolMovedEvent);
-});
-
-// Event listener for mouse down to start drawing
-canvas.addEventListener("mousedown", (e: MouseEvent) => {
-    isDrawing = true;
-    currentLine = new MarkerLine(e.offsetX, e.offsetY, currentLineStyle.width, currentLineStyle.color);
-    toolPreview = null;  // Hide the tool preview when drawing starts
-    redoStack = [];
-});
-
-// Event listener for mouse move to track mouse positions while drawing
-canvas.addEventListener("mousemove", (e: MouseEvent) => {
-    if (isDrawing && currentLine) {
-        currentLine.drag(e.offsetX, e.offsetY);
+        stickerPreview.update(e.offsetX, e.offsetY);
         redraw();
     }
 });
 
-// Event listener for mouse up to stop drawing
+// Event listener for mouse down to start drawing or placing a sticker
+canvas.addEventListener("mousedown", (e: MouseEvent) => {
+    if (currentSticker) {
+        stickerCommand = new StickerCommand(e.offsetX, e.offsetY, currentSticker);
+        stickerPreview = null;
+        redoStack = [];
+    } else {
+        isDrawing = true;
+        currentLine = new MarkerLine(e.offsetX, e.offsetY, currentLineStyle.width, currentLineStyle.color);
+    }
+});
+
+// Event listener for mouse move to track mouse positions while drawing or moving a sticker
+canvas.addEventListener("mousemove", (e: MouseEvent) => {
+    if (isDrawing && currentLine) {
+        currentLine.drag(e.offsetX, e.offsetY);
+        redraw();
+    } else if (stickerCommand) {
+        stickerCommand.drag(e.offsetX, e.offsetY);
+        redraw();
+    }
+});
+
+// Event listener for mouse up to stop drawing or finalize sticker placement
 canvas.addEventListener("mouseup", () => {
     if (isDrawing && currentLine) {
         isDrawing = false;
         paths.push(currentLine);
         currentLine = null;
-        dispatchDrawingChanged();
+    } else if (stickerCommand) {
+        paths.push(stickerCommand);
+        stickerCommand = null;
     }
-});
-
-// Redraw when "drawing-changed" is dispatched
-canvas.addEventListener("drawing-changed", () => {
     redraw();
-});
-
-// Clear button functionality to reset the canvas and paths
-const clearButton = document.createElement("button");
-clearButton.textContent = "Clear Canvas";
-app.appendChild(clearButton);
-
-clearButton.addEventListener("click", () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    paths = [];
-    redoStack = [];
-    currentLine = null;
-    dispatchDrawingChanged();
 });
 
 // Undo button functionality
@@ -233,7 +264,7 @@ undoButton.addEventListener("click", () => {
     if (paths.length > 0) {
         const lastPath = paths.pop();
         redoStack.push(lastPath!);
-        dispatchDrawingChanged();
+        redraw();
     }
 });
 
@@ -246,8 +277,21 @@ redoButton.addEventListener("click", () => {
     if (redoStack.length > 0) {
         const pathToRedo = redoStack.pop();
         paths.push(pathToRedo!);
-        dispatchDrawingChanged();
+        redraw();
     }
+});
+
+// Clear button functionality
+const clearButton = document.createElement("button");
+clearButton.textContent = "Clear Canvas";
+app.appendChild(clearButton);
+
+clearButton.addEventListener("click", () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    paths = [];
+    redoStack = [];
+    currentLine = null;
+    redraw();
 });
 
 // Append the header to the app and set the document title
