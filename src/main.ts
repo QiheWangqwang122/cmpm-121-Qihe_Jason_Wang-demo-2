@@ -159,24 +159,28 @@ createStickerButtons();
 // Event listeners for changing the line style
 thinButton.addEventListener("click", () => {
     currentLineStyle.width = 2;
+    currentSticker = null; // Clear current sticker
     clearSelectedTool();
     thinButton.classList.add("selectedTool");
 });
 
 thickButton.addEventListener("click", () => {
     currentLineStyle.width = 8;
+    currentSticker = null; // Clear current sticker
     clearSelectedTool();
     thickButton.classList.add("selectedTool");
 });
 
 redButton.addEventListener("click", () => {
     currentLineStyle.color = "#ff0000";
+    currentSticker = null; // Clear current sticker
     clearSelectedTool();
     redButton.classList.add("selectedTool");
 });
 
 blueButton.addEventListener("click", () => {
     currentLineStyle.color = "#0000ff";
+    currentSticker = null; // Clear current sticker
     clearSelectedTool();
     blueButton.classList.add("selectedTool");
 });
@@ -305,7 +309,34 @@ clearButton.addEventListener("click", () => {
     redraw();
 });
 
+// Export button functionality
+const exportButton = document.createElement("button");
+exportButton.textContent = "Export Canvas";
+app.appendChild(exportButton);
+
+exportButton.addEventListener("click", () => {
+    // Create a new canvas of size 1024x1024
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = 1024;
+    exportCanvas.height = 1024;
+    const exportCtx = exportCanvas.getContext("2d");
+
+    // Scale the context to fit the larger canvas
+    exportCtx!.scale(4, 4);
+
+    // Execute all the items on the display list against the new canvas
+    for (const path of paths) {
+        path.display(exportCtx!);
+    }
+
+    // Trigger a file download with the contents of the new canvas as a PNG file
+    const dataURL = exportCanvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = dataURL;
+    link.download = "canvas.png";
+    link.click();
+});
+
 // Append the header to the app and set the document title
 app.appendChild(header);
 document.title = APP_NAME;
-
