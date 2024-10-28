@@ -57,6 +57,7 @@ class StickerCommand {
     private x: number;
     private y: number;
     private sticker: string;
+    public rotation: number = 0; // Added rotation property
 
     constructor(x: number, y: number, sticker: string) {
         this.x = x;
@@ -70,9 +71,35 @@ class StickerCommand {
     }
 
     display(ctx: CanvasRenderingContext2D) {
+        ctx.save(); // Save the current state
+        ctx.translate(this.x, this.y); // Translate to the sticker position
+        ctx.rotate(this.rotation * Math.PI / 180); // Rotate the context
         ctx.font = "48px Arial"; // Adjusted size
-        ctx.fillText(this.sticker, this.x, this.y);
+        ctx.fillText(this.sticker, 0, 0); // Draw the sticker at the origin
+        ctx.restore(); // Restore the original state
     }
+}
+
+// Function to draw a sticker with a visual indicator
+function drawSticker(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, rotation: number, emoji: string) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rotation * Math.PI / 180);
+    ctx.font = `${size}px serif`;
+    ctx.fillText(emoji, -size / 2, size / 2);
+
+    // Draw a visual indicator (small arrow)
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -size / 2);
+    ctx.lineTo(-5, -size / 2 + 10);
+    ctx.moveTo(0, -size / 2);
+    ctx.lineTo(5, -size / 2 + 10);
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
 }
 
 // Default style for the marker
@@ -85,6 +112,8 @@ let currentSticker: string | null = null;
 let stickerPreview: StickerPreview | null = null;
 let stickerCommand: StickerCommand | null = null;
 let isDrawing = false;
+let currentColor: string = "#000000"; // Added currentColor
+let currentRotation: number = 0; // Added currentRotation
 
 // Array to store the available stickers (initially predefined stickers)
 let stickers = ["❤️", "⭐", "😊"];
@@ -197,6 +226,48 @@ function dispatchToolMoved() {
     canvas.dispatchEvent(event);
 }
 
+// Function to generate a random color
+function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+// Function to generate a random rotation angle
+function getRandomRotation() {
+    return Math.floor(Math.random() * 360);
+}
+
+// Tool preview element
+const toolPreview = document.createElement("div");
+toolPreview.style.width = "50px";
+toolPreview.style.height = "50px";
+toolPreview.style.border = "1px solid black";
+app.appendChild(toolPreview);
+
+// Marker button functionality
+const markerButton = document.createElement("button");
+markerButton.textContent = "Marker";
+app.appendChild(markerButton);
+
+markerButton.addEventListener("click", () => {
+    currentColor = getRandomColor();
+    toolPreview.style.backgroundColor = currentColor;
+});
+
+// Sticker button functionality
+const stickerButton = document.createElement("button");
+stickerButton.textContent = "Sticker";
+app.appendChild(stickerButton);
+
+stickerButton.addEventListener("click", () => {
+    currentRotation = getRandomRotation();
+    toolPreview.style.transform = `rotate(${currentRotation}deg)`;
+});
+
 // Array to hold all drawing paths and stickers
 let paths: (MarkerLine | StickerCommand)[] = [];
 let currentLine: MarkerLine | null = null;
@@ -207,7 +278,11 @@ function redraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     for (const path of paths) {
-        path.display(ctx);
+        if (path instanceof StickerCommand) {
+            drawSticker(ctx, path.x, path.y, 48, path.rotation, path.sticker);
+        } else {
+            path.display(ctx);
+        }
     }
 
     if (stickerPreview && !isDrawing) {
@@ -258,12 +333,15 @@ canvas.addEventListener("mousemove", (e: MouseEvent) => {
 });
 
 // Event listener for mouse up to stop drawing or finalize sticker placement
-canvas.addEventListener("mouseup", () => {
+canvas.addEventListener("mouseup", (event) => {
     if (isDrawing && currentLine) {
         isDrawing = false;
         paths.push(currentLine);
         currentLine = null;
     } else if (stickerCommand) {
+        stickerCommand.rotation = currentRotation; // Apply rotation to sticker
+        stickerCommand.x = event.offsetX;
+        stickerCommand.y = event.offsetY;
         paths.push(stickerCommand);
         stickerCommand = null;
     }
