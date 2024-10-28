@@ -29,7 +29,7 @@ class MarkerLine {
     }
 }
 
-// New StickerPreview class for previewing sticker placement
+// StickerPreview class for previewing sticker placement
 class StickerPreview {
     private x: number;
     private y: number;
@@ -86,6 +86,9 @@ let stickerPreview: StickerPreview | null = null;
 let stickerCommand: StickerCommand | null = null;
 let isDrawing = false;
 
+// Array to store the available stickers (initially predefined stickers)
+let stickers = ["❤️", "⭐", "😊"];
+
 // Set up the app and canvas
 const APP_NAME = "Jason's App";
 const app = document.querySelector<HTMLDivElement>("#app")!;
@@ -116,18 +119,42 @@ const blueButton = document.createElement("button");
 blueButton.textContent = "Blue Marker";
 app.appendChild(blueButton);
 
-// Create buttons for stickers (emoji strings)
-const heartButton = document.createElement("button");
-heartButton.textContent = "❤️";
-app.appendChild(heartButton);
+// Function to dynamically create sticker buttons based on the stickers array
+function createStickerButtons() {
+    const stickerContainer = document.createElement("div");
+    stickerContainer.id = "sticker-container";
+    app.appendChild(stickerContainer);
+    
+    // Clear old buttons first
+    stickerContainer.innerHTML = "";
 
-const starButton = document.createElement("button");
-starButton.textContent = "⭐";
-app.appendChild(starButton);
+    stickers.forEach((sticker) => {
+        const stickerButton = document.createElement("button");
+        stickerButton.textContent = sticker;
+        stickerButton.addEventListener("click", () => {
+            currentSticker = sticker;
+            dispatchToolMoved();
+        });
+        stickerContainer.appendChild(stickerButton);
+    });
+}
 
-const smileyButton = document.createElement("button");
-smileyButton.textContent = "😊";
-app.appendChild(smileyButton);
+// Create a custom sticker button
+const customStickerButton = document.createElement("button");
+customStickerButton.textContent = "Custom Sticker";
+app.appendChild(customStickerButton);
+
+// Event listener for creating a custom sticker
+customStickerButton.addEventListener("click", () => {
+    const customSticker = prompt("Enter your custom sticker emoji or text", "🌟");
+    if (customSticker) {
+        stickers.push(customSticker);  // Add the custom sticker to the array
+        createStickerButtons();  // Recreate the buttons to include the new custom sticker
+    }
+});
+
+// Initial creation of sticker buttons
+createStickerButtons();
 
 // Event listeners for changing the line style
 thinButton.addEventListener("click", () => {
@@ -152,22 +179,6 @@ blueButton.addEventListener("click", () => {
     currentLineStyle.color = "#0000ff";
     clearSelectedTool();
     blueButton.classList.add("selectedTool");
-});
-
-// Event listeners for selecting stickers
-heartButton.addEventListener("click", () => {
-    currentSticker = "❤️";
-    dispatchToolMoved();
-});
-
-starButton.addEventListener("click", () => {
-    currentSticker = "⭐";
-    dispatchToolMoved();
-});
-
-smileyButton.addEventListener("click", () => {
-    currentSticker = "😊";
-    dispatchToolMoved();
 });
 
 // Function to clear the selected tool class from all buttons
@@ -297,3 +308,4 @@ clearButton.addEventListener("click", () => {
 // Append the header to the app and set the document title
 app.appendChild(header);
 document.title = APP_NAME;
+
