@@ -47,7 +47,7 @@ class StickerPreview {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.font = "40px Arial";
+        ctx.font = "48px Arial"; // Adjusted size
         ctx.fillText(this.sticker, this.x, this.y);
     }
 }
@@ -70,7 +70,7 @@ class StickerCommand {
     }
 
     display(ctx: CanvasRenderingContext2D) {
-        ctx.font = "40px Arial";
+        ctx.font = "48px Arial"; // Adjusted size
         ctx.fillText(this.sticker, this.x, this.y);
     }
 }
@@ -104,19 +104,19 @@ const ctx = canvas.getContext('2d');
 
 // Create buttons for line width and color
 const thinButton = document.createElement("button");
-thinButton.textContent = "Thin Marker";
+thinButton.textContent = "Thin Brush"; // Renamed
 app.appendChild(thinButton);
 
 const thickButton = document.createElement("button");
-thickButton.textContent = "Thick Marker";
+thickButton.textContent = "Thick Brush"; // Renamed
 app.appendChild(thickButton);
 
 const redButton = document.createElement("button");
-redButton.textContent = "Red Marker";
+redButton.textContent = "Red Brush"; // Renamed
 app.appendChild(redButton);
 
 const blueButton = document.createElement("button");
-blueButton.textContent = "Blue Marker";
+blueButton.textContent = "Blue Brush"; // Renamed
 app.appendChild(blueButton);
 
 // Function to dynamically create sticker buttons based on the stickers array
@@ -141,12 +141,12 @@ function createStickerButtons() {
 
 // Create a custom sticker button
 const customStickerButton = document.createElement("button");
-customStickerButton.textContent = "Custom Sticker";
+customStickerButton.textContent = "Custom Emoji"; // Renamed
 app.appendChild(customStickerButton);
 
 // Event listener for creating a custom sticker
 customStickerButton.addEventListener("click", () => {
-    const customSticker = prompt("Enter your custom sticker emoji or text", "🌟");
+    const customSticker = prompt("Enter your custom emoji or text", "🌟"); // Renamed
     if (customSticker) {
         stickers.push(customSticker);  // Add the custom sticker to the array
         createStickerButtons();  // Recreate the buttons to include the new custom sticker
@@ -158,14 +158,14 @@ createStickerButtons();
 
 // Event listeners for changing the line style
 thinButton.addEventListener("click", () => {
-    currentLineStyle.width = 2;
+    currentLineStyle.width = 2; // Adjusted thickness
     currentSticker = null; // Clear current sticker
     clearSelectedTool();
     thinButton.classList.add("selectedTool");
 });
 
 thickButton.addEventListener("click", () => {
-    currentLineStyle.width = 8;
+    currentLineStyle.width = 6; // Adjusted thickness
     currentSticker = null; // Clear current sticker
     clearSelectedTool();
     thickButton.classList.add("selectedTool");
@@ -315,10 +315,10 @@ exportButton.textContent = "Export Canvas";
 app.appendChild(exportButton);
 
 exportButton.addEventListener("click", () => {
-    // Create a new canvas of size 1024x1024
+    // Create a new canvas of size 800x800
     const exportCanvas = document.createElement("canvas");
-    exportCanvas.width = 1024;
-    exportCanvas.height = 1024;
+    exportCanvas.width = 800; // Adjusted size
+    exportCanvas.height = 800; // Adjusted size
     const exportCtx = exportCanvas.getContext("2d");
 
     // Scale the context to fit the larger canvas
