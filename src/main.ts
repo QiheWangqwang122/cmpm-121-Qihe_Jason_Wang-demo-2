@@ -96,16 +96,6 @@ function drawSticker(ctx: CanvasRenderingContext2D, x: number, y: number, size: 
     ctx.font = `${size}px serif`;
     ctx.fillText(emoji, -size / 2, size / 2);
 
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0, -size / 2);
-    ctx.lineTo(-5, -size / 2 + 10);
-    ctx.moveTo(0, -size / 2);
-    ctx.lineTo(5, -size / 2 + 10);
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
     ctx.restore();
 }
 
